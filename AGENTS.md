@@ -42,12 +42,12 @@ Output (`dist/`) contains only `appsscript.json`, `index.html`, and one `.gs` pe
 import { gsr } from './gas'
 
 // Direct use
-const result = await gsr<string>('hello')
+const result = await gsr<string[]>('testGQuery')
 
 // With TanStack Query (wraps in arrow function!)
 const query = useQuery({
-  queryKey: ['hello'],
-  queryFn: () => gsr<string>('hello'),
+  queryKey: ['testGQuery'],
+  queryFn: () => gsr<string[]>('testGQuery'),
 })
 ```
 
@@ -55,17 +55,29 @@ const query = useQuery({
 - `gsr()` returns a Promise. For TanStack Query, always wrap: `queryFn: () => gsr('fn')` — not `queryFn: gsr('fn')`.
 - Falls back to rejecting with a dev-mode error when `google` is undefined (local Vite dev).
 - Bracket notation on `google.script.run` works fine in GAS V8 runtime — no dispatcher needed.
+- **Never expose sensitive IDs (spreadsheet IDs, library IDs) to the client.** Read them from `PropertiesService` on the server side.
 
 ## Adding a server function
 
 1. Add the function in `server/Code.ts` (or a new `server/*.ts` file — each becomes a `.gs`):
    ```ts
-   function myFunction(arg: string): string {
-     return `You said: ${arg}`
+   function getSheetNames(): string[] {
+     const props = PropertiesService.getScriptProperties()
+     const id = props.getProperty('SPREADSHEET_ID')
+     if (!id) throw new Error('SPREADSHEET_ID not set')
+     return SpreadsheetApp.openById(id).getSheets().map(s => s.getName())
    }
    ```
-2. Call from front-end: `gsr<string>('myFunction', 'hello')`
+2. Call from front-end: `gsr<string[]>('getSheetNames')`
 3. If creating a new server file (e.g. `server/Utils.ts` → `dist/Utils.gs`), add `!Utils.gs` to `.claspignore`. Pattern negation does not support wildcards in the positive direction.
+
+## GQuery / Sheets
+
+- **GQuery** is included as a GAS library in `server/appsscript.json` (library ID `1UqTjUrX6rnMMzbYJPJRPk3cmLCYc7n7FZwZq6Q7gG-j3rTqj15LC953B`).
+- Use as `new GQuery.GQuery(spreadsheetId)` — the double `GQuery` is because the first is the library identifier.
+- **Sheets advanced service** is enabled in the manifest (`serviceId: "sheets"`, version `v4`). Required by GQuery for write operations.
+- GQuery library versions available in GAS may differ from what's in the manifest. If a push resets the library to a lower version, re-add it via the Apps Script editor (Services → Libraries).
+- Spreadsheet IDs should be stored in `PropertiesService.getScriptProperties()` under `SPREADSHEET_ID` — set once via the Apps Script editor (Project Settings → Script Properties).
 
 ## TypeScript
 
@@ -86,7 +98,7 @@ const query = useQuery({
 
 ## Routing
 
-Use `MemoryRouter` — not `HashRouter`. The GAS sandbox iframe makes hash URLs invisible and shows `googleusercontent.com` addresses. MemoryRouter gives the same navigation without broken URL display.
+`MemoryRouter` — works inside the GAS sandbox iframe (routes navigate without broken `googleusercontent.com` URLs).
 
 ## React Compiler
 
@@ -112,3 +124,4 @@ Flat config (`eslint.config.js`). `globalIgnores(['dist', 'server'])` — server
 - `@types/google-apps-script` — GAS runtime types
 - `@tanstack/react-query` — server-side data fetching
 - `react-router` — client-side routing (MemoryRouter)
+- GQuery — Sheets ORM (GAS library, not npm)
