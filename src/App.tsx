@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { gsr } from './gas.ts'
 import reactLogo from './assets/react.svg'
 import viteLogo from './assets/vite.svg'
 import heroImg from './assets/hero.png'
@@ -6,6 +7,21 @@ import './App.css'
 
 function App() {
   const [count, setCount] = useState(0)
+  const [serverMessage, setServerMessage] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  const callHelloWorld = async () => {
+    setLoading(true)
+    setServerMessage('')
+    try {
+      const result = await gsr<string>('helloWorld')
+      setServerMessage(result)
+    } catch {
+      setServerMessage('GAS runtime not available (dev mode)')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
     <>
@@ -28,6 +44,17 @@ function App() {
         >
           Count is {count}
         </button>
+
+        <div style={{ marginTop: '2rem' }}>
+          <button type="button" onClick={callHelloWorld} disabled={loading}>
+            {loading ? 'Calling server...' : 'Call Hello World'}
+          </button>
+          {serverMessage && (
+            <p style={{ marginTop: '0.5rem', fontWeight: 600 }}>
+              {serverMessage}
+            </p>
+          )}
+        </div>
       </section>
 
       <div className="ticks"></div>
