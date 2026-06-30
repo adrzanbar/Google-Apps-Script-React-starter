@@ -33,12 +33,14 @@ Output (`dist/`) contains only `appsscript.json`, `index.html`, and one `.gs` pe
 `src/gas.ts` exports `gsr<T>(fn: string, ...args: unknown[]): Promise<T>` — a promise wrapper around `google.script.run`.
 
 ```ts
-const result = await gsr<string>('helloWorld')
+const result = await gsr<string>('hello')
 ```
 
 - Pass the server function **name as a string**, not a reference.
 - Falls back to rejecting with a dev-mode error when `google` is undefined (local Vite).
 - `src/gas.d.ts` provides the `google.script.run` type declarations.
+
+
 
 ## TypeScript quirks
 
