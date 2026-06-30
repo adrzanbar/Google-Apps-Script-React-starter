@@ -43,12 +43,12 @@ After `npm run push`, deploy the web app from the [Apps Script editor](https://s
 
 | Command | What it does |
 |---------|-------------|
-| `npm run dev` | Start Vite dev server with HMR |
-| `npm run build` | Build everything to `dist/` |
-| `npm run push` | Build + push to GAS (`clasp push -f`) |
-| `npm run create` | Create a new GAS project (`clasp create`) |
-| `npm run lint` | Run ESLint |
-| `npm run preview` | Serve the production build locally |
+| `npm run dev` | Vite dev server with HMR |
+| `npm run build` | `vite build && cp server/appsscript.json dist/ && npx esbuild server/*.ts --outdir=dist --out-extension:.js=.gs` |
+| `npm run push` | `npm run build && clasp push -f` — build then deploy to GAS |
+| `npm run lint` | `eslint .` |
+| `npm run preview` | Serve production build locally |
+| `npm run create` | `clasp create --type standalone --rootDir dist && clasp pull -f && cp dist/appsscript.json server/appsscript.json`; pass `-- --title "..."` for title |
 
 ## Project structure
 
@@ -126,13 +126,12 @@ The `@/` path alias resolves to `./src/`. Components go in `src/components/ui/`.
 
 ## Build pipeline
 
-```
-vite build                →  dist/index.html  (single file, all JS/CSS inlined)
-cp server/appsscript.json →  dist/appsscript.json
-esbuild server/*.ts → .gs  →  dist/Code.gs
-```
+1. `vite build` — compiles React app to `dist/`
+2. `vite-plugin-singlefile` — inlines all JS/CSS into `dist/index.html` (single file for `HtmlService`)
+3. `cp server/appsscript.json dist/` — copies manifest (build fails if `server/appsscript.json` missing)
+4. esbuild — `server/*.ts` compiled to `dist/*.gs` (plain JS for GAS V8 runtime)
 
-Then `clasp push -f` uploads `dist/` to GAS. The `.claspignore` ensures only `appsscript.json`, `Code.gs`, and `index.html` are pushed.
+Output (`dist/`) contains `appsscript.json`, `index.html`, and one `.gs` per server file.
 
 ## TypeScript
 
