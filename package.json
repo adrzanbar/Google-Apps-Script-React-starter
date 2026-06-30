@@ -5,11 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build && cp server/appsscript.json dist/ && npx esbuild server/*.ts --outdir=dist --out-extension:.js=.gs",
-    "lint": "eslint .",
     "preview": "vite preview",
+    "lint": "eslint .",
+    "build": "vite build && cp server/appsscript.json dist/ && npx esbuild server/*.ts --outdir=dist --out-extension:.js=.gs",
     "push": "npm run build && clasp push -f",
-    "create": "clasp create --type standalone --rootDir dist && clasp pull -f && cp dist/appsscript.json server/appsscript.json"
+    "create": "clasp create --type standalone --rootDir dist"
   },
   "dependencies": {
     "@fontsource-variable/geist": "^5.2.9",

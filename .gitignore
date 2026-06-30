@@ -12,7 +12,6 @@ dist
 dist-ssr
 *.local
 .clasp.json
-appsscript.json
 
 # Editor directories and files
 .vscode/*
