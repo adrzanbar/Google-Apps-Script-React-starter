@@ -65,7 +65,7 @@ const query = useQuery({
    }
    ```
 2. Call from front-end: `gsr<string>('myFunction', 'hello')`
-3. If creating a new server file, update `.claspignore` to allow the new `*.gs` in dist/.
+3. If creating a new server file (e.g. `server/Utils.ts` → `dist/Utils.gs`), add `!Utils.gs` to `.claspignore`. Pattern negation does not support wildcards in the positive direction.
 
 ## TypeScript
 

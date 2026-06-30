@@ -1,6 +1,5 @@
 import { gsr } from "./gas.ts";
 import "./App.css";
-import { Button } from "./components/ui/button.tsx";
 import {
   QueryClient,
   QueryClientProvider,
@@ -24,21 +23,49 @@ function App() {
 }
 
 function Home() {
-  const query = useQuery({
-    queryKey: ["hello"],
-    queryFn: () => gsr<string>("hello"),
+  const gqueryQuery = useQuery({
+    queryKey: ["gquery"],
+    queryFn: () => gsr<{ sheets: string[] }>("testGQuery"),
   });
+
+  const isSuccess = gqueryQuery.isSuccess && !gqueryQuery.isError;
+  const isError = gqueryQuery.isError;
 
   return (
     <div className="flex min-h-svh flex-col items-center justify-center gap-4">
-      <Button onClick={() => query.refetch()} disabled={query.isLoading}>
-        Hello
-      </Button>
-      {query.isLoading && <p>Loading...</p>}
-      {query.isError && (
-        <p className="text-destructive">{query.error.message}</p>
+      <div className="flex items-center gap-2">
+        {isSuccess && (
+          <>
+            <svg className="w-6 h-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+            <span className="text-green-500 font-medium">Successfully connected to Sheets</span>
+          </>
+        )}
+        {isError && (
+          <>
+            <svg className="w-6 h-6 text-destructive" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+            <span className="text-destructive font-medium">Failed to connect to Sheets</span>
+          </>
+        )}
+        {gqueryQuery.isLoading && (
+          <span className="text-muted-foreground">Connecting to Sheets...</span>
+        )}
+      </div>
+      {isSuccess && gqueryQuery.data && (
+        <div className="flex flex-wrap gap-2 justify-center max-w-md">
+          {gqueryQuery.data.sheets.map((sheet) => (
+            <span key={sheet} className="px-3 py-1 bg-muted rounded-full text-sm">
+              {sheet}
+            </span>
+          ))}
+        </div>
       )}
-      {query.isSuccess && <p>{query.data}</p>}
+      {isError && (
+        <p className="text-sm text-destructive">{gqueryQuery.error.message}</p>
+      )}
       <Link to="/about" className="text-sm underline">
         About
       </Link>
