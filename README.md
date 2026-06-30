@@ -1,77 +1,146 @@
-# React + TypeScript + Vite
+# Google Apps Script + React Starter
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A starter template for building Google Apps Script web apps with a modern React front-end. Write your UI in React with TypeScript, Tailwind CSS, and shadcn — deploy to GAS with one command.
 
-Currently, two official plugins are available:
+## What's included
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **React 19** + **TypeScript 6** + **Vite 8**
+- **Tailwind CSS v4** + **shadcn UI** (radix-nova style)
+- **TanStack Query** for server-side data fetching
+- **React Router** (MemoryRouter — works inside the GAS sandbox iframe)
+- **React Compiler** via `@rolldown/plugin-babel`
+- **`vite-plugin-singlefile`** — inlines all JS/CSS into one HTML file for `HtmlService`
+- **esbuild** — compiles `server/*.ts` → `dist/*.gs` for the GAS V8 runtime
+- **clasp** — push to Google Apps Script from the CLI
 
-## React Compiler
+## Quick start
 
-The React Compiler is enabled on this template. See [this documentation](https://react.dev/learn/react-compiler) for more information.
+```sh
+# 1. Clone and install
+git clone https://github.com/adrzanbar/Google-Apps-Script-React-starter.git my-project
+cd my-project
+npm install
 
-Note: This will impact Vite dev & build performances.
+# 2. Set up clasp (first time only)
+clasp login
+npm run create -- --title "My Project"
 
-## Expanding the ESLint configuration
+# 3. Develop locally
+npm run dev
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
+# 4. Build and deploy
+npm run push
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+After `npm run push`, deploy the web app from the [Apps Script editor](https://script.google.com) — or use `clasp deploy` / `clasp open`.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Scripts
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+| Command | What it does |
+|---------|-------------|
+| `npm run dev` | Start Vite dev server with HMR |
+| `npm run build` | Build everything to `dist/` |
+| `npm run push` | Build + push to GAS (`clasp push -f`) |
+| `npm run create` | Create a new GAS project (`clasp create`) |
+| `npm run lint` | Run ESLint |
+| `npm run preview` | Serve the production build locally |
+
+## Project structure
 
 ```
+├── src/                  # React front-end
+│   ├── App.tsx           # Entry point with QueryClient + Router
+│   ├── gas.ts            # gsr<T>() — promise wrapper for google.script.run
+│   ├── gas.d.ts          # TypeScript declarations for GAS API
+│   ├── components/ui/    # shadcn components
+│   └── lib/utils.ts      # cn() utility
+├── server/               # GAS server-side code
+│   ├── Code.ts           # doGet(), server functions
+│   └── appsscript.json   # GAS manifest (source of truth)
+├── dist/                 # Build output (gitignored, pushed to GAS)
+│   ├── index.html        # Single-file React app
+│   ├── Code.gs           # Compiled server code
+│   └── appsscript.json   # Copied manifest
+└── vite.config.ts
+```
+
+## Calling server functions from React
+
+`src/gas.ts` exports `gsr<T>()` — a promise wrapper around `google.script.run`:
+
+```ts
+import { gsr } from './gas'
+
+// In a React component with TanStack Query:
+const query = useQuery({
+  queryKey: ['hello'],
+  queryFn: () => gsr<string>('hello'),
+})
+```
+
+- Pass the server function **name as a string**, not a reference.
+- Works with TanStack Query, `await`, or `.then()`.
+- Rejects with a dev-mode error when `google` is undefined (local Vite dev).
+
+Add server functions in `server/Code.ts`:
+
+```ts
+function myFunction(arg: string): string {
+  return `You said: ${arg}`
+}
+```
+
+Then call from the front-end:
+
+```ts
+const result = await gsr<string>('myFunction', 'hello')
+```
+
+> **Note:** `gsr()` returns a Promise, so for TanStack Query always wrap it: `queryFn: () => gsr('fn')` — not `queryFn: gsr('fn')`.
+
+## Adding shadcn components
+
+```sh
+npx shadcn add dialog
+npx shadcn add dropdown-menu
+```
+
+The `@/` path alias resolves to `./src/`. Components go in `src/components/ui/`.
+
+## Build pipeline
+
+```
+vite build                →  dist/index.html  (single file, all JS/CSS inlined)
+cp server/appsscript.json →  dist/appsscript.json
+esbuild server/*.ts → .gs  →  dist/Code.gs
+```
+
+Then `clasp push -f` uploads `dist/` to GAS. The `.claspignore` ensures only `appsscript.json`, `Code.gs`, and `index.html` are pushed.
+
+## TypeScript
+
+Two separate configs:
+
+- **`tsconfig.app.json`** — front-end (`src/`), includes `@/` path alias
+- **`tsconfig.server.json`** — server (`server/`), includes `@types/google-apps-script`
+
+Both are referenced from the root `tsconfig.json`.
+
+Quirks enforced by both configs:
+
+- `verbatimModuleSyntax: true` — use `import type` for type-only imports
+- `erasableSyntaxOnly: true` — no enums, no namespaces, no constructor parameter properties
+
+## Routing in GAS
+
+The GAS sandbox renders your app in an iframe. Hash-based URLs (`HashRouter`) are invisible to the user and show as `googleusercontent.com` addresses. This starter uses `MemoryRouter` instead — routes work correctly without broken URL display.
+
+## Acknowledgments
+
+- Built on [Vite](https://vite.dev) + [React](https://react.dev)
+- UI components from [shadcn](https://ui.shadcn.com) + [Radix](https://radix-ui.com)
+- Powered by [clasp](https://github.com/google/clasp)
+
+## License
+
+MIT
