@@ -1,7 +1,5 @@
 # AGENTS
 
-Reference for AI agents and contributors working on this project.
-
 ## Commands
 
 | Command | What it does |
@@ -11,16 +9,24 @@ Reference for AI agents and contributors working on this project.
 | `npm run push` | `npm run build && clasp push -f` — build then deploy to GAS |
 | `npm run lint` | `eslint .` |
 | `npm run preview` | Serve production build locally |
-| `npm run create` | `clasp create --type standalone --rootDir dist`; pass `-- --title "..."` for title |
+| `npm run create` | `clasp create --type standalone --rootDir dist && clasp pull -f && cp dist/appsscript.json server/appsscript.json`; pass `-- --title "..."` for title |
 
 ## Build pipeline
 
 1. `vite build` — compiles React app to `dist/`
 2. `vite-plugin-singlefile` — inlines all JS/CSS into `dist/index.html` (single file for `HtmlService`)
-3. Server — `server/*.ts` compiled via esbuild to `dist/*.gs` (plain JS for GAS V8 runtime)
-4. Manifest — `server/appsscript.json` copied to `dist/`
+3. `cp server/appsscript.json dist/` — copies manifest (build fails if `server/appsscript.json` missing)
+4. esbuild — `server/*.ts` compiled to `dist/*.gs` (plain JS for GAS V8 runtime)
 
-Output (`dist/`) contains only `appsscript.json`, `index.html`, and one `.gs` per server file.
+Output (`dist/`) contains `appsscript.json`, `index.html`, and one `.gs` per server file.
+
+## First-time setup
+
+1. `clasp login`
+2. `npm run create -- --title "My Project"` — creates remote GAS project, pulls manifest to `dist/`, copies to `server/`
+3. Customize `server/appsscript.json` (add libraries, webapp config, etc.) — this is the source of truth, tracked in git
+4. Set `SPREADSHEET_ID` in Apps Script editor (Project Settings → Script Properties)
+5. `npm run push` — build and deploy
 
 ## Project layout
 
@@ -34,7 +40,7 @@ Output (`dist/`) contains only `appsscript.json`, `index.html`, and one `.gs` pe
 | `src/components/ui/` | shadcn UI components |
 | `src/lib/utils.ts` | `cn()` utility (clsx + tailwind-merge) |
 | `server/Code.ts` | `doGet()` and server functions |
-| `server/appsscript.json` | GAS manifest (source of truth, copied to dist/) |
+| `server/appsscript.json` | GAS manifest (source of truth, copied to dist/ during build) |
 
 ## Calling server functions from front-end
 
@@ -59,7 +65,7 @@ const query = useQuery({
 
 ## Adding a server function
 
-1. Add the function in `server/Code.ts` (or a new `server/*.ts` file — each becomes a `.gs`):
+1. Add the function in `server/Code.ts` (or a new `server/*.ts` file — each becomes a `.gs` in `dist/`):
    ```ts
    function getSheetNames(): string[] {
      const props = PropertiesService.getScriptProperties()
@@ -69,7 +75,7 @@ const query = useQuery({
    }
    ```
 2. Call from front-end: `gsr<string[]>('getSheetNames')`
-3. If creating a new server file (e.g. `server/Utils.ts` → `dist/Utils.gs`), add `!Utils.gs` to `.claspignore`. Pattern negation does not support wildcards in the positive direction.
+3. No `.claspignore` changes needed — `!*.gs` catches all server output files.
 
 ## GQuery / Sheets
 
@@ -77,7 +83,7 @@ const query = useQuery({
 - Use as `new GQuery.GQuery(spreadsheetId)` — the double `GQuery` is because the first is the library identifier.
 - **Sheets advanced service** is enabled in the manifest (`serviceId: "sheets"`, version `v4`). Required by GQuery for write operations.
 - GQuery library versions available in GAS may differ from what's in the manifest. If a push resets the library to a lower version, re-add it via the Apps Script editor (Services → Libraries).
-- Spreadsheet IDs should be stored in `PropertiesService.getScriptProperties()` under `SPREADSHEET_ID` — set once via the Apps Script editor (Project Settings → Script Properties).
+- Spreadsheet IDs stored in `PropertiesService.getScriptProperties()` under `SPREADSHEET_ID` — set once via the Apps Script editor (Project Settings → Script Properties).
 
 ## TypeScript
 
@@ -91,10 +97,10 @@ const query = useQuery({
 - `clasp push -f` is mandatory — clasp 3.3.0 skips push without `-f`.
 - `rootDir: "dist"` in `.clasp.json` — clasp reads from `dist/`; `.claspignore` patterns are relative to `rootDir`.
 - `.clasp.json` is gitignored — each dev runs `clasp login && npm run create` to set up.
-- Root `appsscript.json` is gitignored — source of truth is `server/appsscript.json`, copied during build.
-- Web app behavior comes from `appsscript.json` manifest (`webapp` section), not from `clasp create --type`.
+- `/appsscript.json` (root) is gitignored — source of truth is `server/appsscript.json`, copied during build.
+- `clasp create` supports `--type webapp` but this project uses `--type standalone` + sets webapp config in the manifest.
 - `doGet()` serves `HtmlService.createHtmlOutputFromFile('index')` — lowercase, matching Vite output.
-- `clasp create` does not support `--type webapp` — use `--type standalone` and set webapp in manifest.
+- `.claspignore` uses `!*.gs` so new server files are pushed automatically — no per-file additions needed.
 
 ## Routing
 

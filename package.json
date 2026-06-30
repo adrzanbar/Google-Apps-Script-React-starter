@@ -9,7 +9,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "push": "npm run build && clasp push -f",
-    "create": "clasp create --type standalone --rootDir dist"
+    "create": "clasp create --type standalone --rootDir dist && clasp pull -f && cp dist/appsscript.json server/appsscript.json"
   },
   "dependencies": {
     "@fontsource-variable/geist": "^5.2.9",
