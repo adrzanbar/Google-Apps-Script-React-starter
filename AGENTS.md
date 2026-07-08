@@ -9,7 +9,7 @@
 | `npm run push` | `npm run build && clasp push -f` — build then deploy to GAS |
 | `npm run lint` | `eslint .` |
 | `npm run preview` | Serve production build locally |
-| `npm run create` | `clasp create --type standalone --rootDir dist && clasp pull -f && cp dist/appsscript.json server/appsscript.json`; pass `-- --title "..."` for title |
+| `npm run create` | `clasp create --type standalone --rootDir dist` (see first-time setup for full workflow) |
 
 ## Build pipeline
 
@@ -23,10 +23,11 @@ Output (`dist/`) contains `appsscript.json`, `index.html`, and one `.gs` per ser
 ## First-time setup
 
 1. `clasp login`
-2. `npm run create -- --title "My Project"` — creates remote GAS project, pulls manifest to `dist/`, copies to `server/`
-3. Customize `server/appsscript.json` (add libraries, webapp config, etc.) — this is the source of truth, tracked in git
-4. Set `SPREADSHEET_ID` in Apps Script editor (Project Settings → Script Properties)
-5. `npm run push` — build and deploy
+2. `npm run create -- --title "My Project"` — creates remote GAS project in `dist/`
+3. `clasp pull -f && cp dist/appsscript.json server/appsscript.json` — pull manifest and copy to source
+4. Customize `server/appsscript.json` (add libraries, webapp config, etc.) — this is the source of truth, tracked in git
+5. Set `SPREADSHEET_ID` in Apps Script editor (Project Settings → Script Properties)
+6. `npm run push` — build and deploy
 
 ## Project layout
 
