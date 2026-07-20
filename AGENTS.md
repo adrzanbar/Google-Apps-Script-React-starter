@@ -5,7 +5,7 @@
 | Command | What it does |
 |---------|-------------|
 | `npm run dev` | Vite dev server with HMR |
-| `npm run build` | `vite build && cp server/appsscript.json dist/ && npx esbuild server/*.ts --outdir=dist --out-extension:.js=.gs` (no ORM/library glue) |
+| `npm run build` | `vite build && cp server/appsscript.json dist/ && npx esbuild server/*.ts --outdir=dist --out-extension:.js=.gs` |
 | `npm run push` | `npm run build && clasp push -f` — build then deploy to GAS |
 | `npm run lint` | `eslint .` |
 | `npm run preview` | Serve production build locally |
@@ -26,8 +26,7 @@ Output (`dist/`) contains `appsscript.json`, `index.html`, and one `.gs` per ser
 2. `npm run create -- --title "My Project"` — creates remote GAS project in `dist/`
 3. `clasp pull -f && cp dist/appsscript.json server/appsscript.json` — pull manifest and copy to source
 4. Customize `server/appsscript.json` (add libraries, webapp config, etc.) — this is the source of truth, tracked in git
-5. Set `SPREADSHEET_ID` in Apps Script editor (Project Settings → Script Properties)
-6. `npm run push` — build and deploy
+5. `npm run push` — build and deploy
 
 ## Project layout
 
@@ -49,12 +48,12 @@ Output (`dist/`) contains `appsscript.json`, `index.html`, and one `.gs` per ser
 import { gsr } from './gas'
 
 // Direct use
-const result = await gsr<string[]>('getSheetNames')
+const result = await gsr<string>('ping')
 
 // With TanStack Query (wraps in arrow function!)
 const query = useQuery({
-  queryKey: ['getSheetNames'],
-  queryFn: () => gsr<string[]>('getSheetNames'),
+  queryKey: ['ping'],
+  queryFn: () => gsr<string>('ping'),
 })
 ```
 
@@ -62,20 +61,17 @@ const query = useQuery({
 - `gsr()` returns a Promise. For TanStack Query, always wrap: `queryFn: () => gsr('fn')` — not `queryFn: gsr('fn')`.
 - Falls back to rejecting with a dev-mode error when `google` is undefined (local Vite dev).
 - Bracket notation on `google.script.run` works fine in GAS V8 runtime — no dispatcher needed.
-- **Never expose sensitive IDs (spreadsheet IDs, library IDs) to the client.** Read them from `PropertiesService` on the server side.
+- **Never expose sensitive IDs (API keys, credentials) to the client.** Read them from `PropertiesService` on the server side.
 
 ## Adding a server function
 
 1. Add the function in `server/Code.ts` (or a new `server/*.ts` file — each becomes a `.gs` in `dist/`):
    ```ts
-   function getSheetNames(): string[] {
-     const props = PropertiesService.getScriptProperties()
-     const id = props.getProperty('SPREADSHEET_ID')
-     if (!id) throw new Error('SPREADSHEET_ID not set')
-     return SpreadsheetApp.openById(id).getSheets().map(s => s.getName())
+   function ping(): string {
+     return 'pong: ' + new Date().toISOString()
    }
    ```
-2. Call from front-end: `gsr<string[]>('getSheetNames')`
+2. Call from front-end: `gsr<string>('ping')`
 3. No `.claspignore` changes needed — `!*.gs` catches all server output files.
 
 ## TypeScript

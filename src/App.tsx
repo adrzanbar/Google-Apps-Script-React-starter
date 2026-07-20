@@ -24,8 +24,8 @@ function App() {
 
 function Home() {
   const serverQuery = useQuery({
-    queryKey: ["getSheetNames"],
-    queryFn: () => gsr<string[]>("getSheetNames"),
+    queryKey: ["ping"],
+    queryFn: () => gsr<string>("ping"),
   });
 
   const isSuccess = serverQuery.isSuccess && !serverQuery.isError;
@@ -55,13 +55,9 @@ function Home() {
         )}
       </div>
       {isSuccess && serverQuery.data && (
-        <div className="flex flex-wrap gap-2 justify-center max-w-md">
-          {serverQuery.data.map((sheet) => (
-            <span key={sheet} className="px-3 py-1 bg-muted rounded-full text-sm">
-              {sheet}
-            </span>
-          ))}
-        </div>
+        <span className="px-3 py-1 bg-muted rounded-full text-sm">
+          {serverQuery.data}
+        </span>
       )}
       {isError && (
         <p className="text-sm text-destructive">{serverQuery.error.message}</p>

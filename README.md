@@ -25,14 +25,10 @@ npm install
 clasp login
 npm run create -- --title "My Project"
 
-# 3. Set SPREADSHEET_ID in script properties
-#    In the Apps Script editor: Project Settings → Script Properties
-#    Add: SPREADSHEET_ID = your-google-sheets-id
-
-# 4. Develop locally
+# 3. Develop locally
 npm run dev
 
-# 5. Build and deploy
+# 4. Build and deploy
 npm run push
 ```
 
@@ -77,8 +73,8 @@ import { gsr } from './gas'
 
 // In a React component with TanStack Query:
 const query = useQuery({
-  queryKey: ['getSheetNames'],
-  queryFn: () => gsr<string[]>('getSheetNames'),
+  queryKey: ['ping'],
+  queryFn: () => gsr<string>('ping'),
 })
 ```
 
@@ -89,18 +85,15 @@ const query = useQuery({
 Add server functions in `server/Code.ts`:
 
 ```ts
-function getSheetNames(): string[] {
-  const props = PropertiesService.getScriptProperties()
-  const id = props.getProperty('SPREADSHEET_ID')
-  if (!id) throw new Error('SPREADSHEET_ID not set')
-  return SpreadsheetApp.openById(id).getSheets().map(s => s.getName())
+function ping(): string {
+  return 'pong: ' + new Date().toISOString()
 }
 ```
 
 Then call from the front-end:
 
 ```ts
-const result = await gsr<string[]>('getSheetNames')
+const result = await gsr<string>('ping')
 ```
 
 > **Note:** `gsr()` returns a Promise, so for TanStack Query always wrap it: `queryFn: () => gsr('fn')` — not `queryFn: gsr('fn')`.
