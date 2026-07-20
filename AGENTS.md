@@ -5,7 +5,7 @@
 | Command | What it does |
 |---------|-------------|
 | `npm run dev` | Vite dev server with HMR |
-| `npm run build` | `vite build && cp server/appsscript.json dist/ && npx esbuild server/*.ts --outdir=dist --out-extension:.js=.gs` |
+| `npm run build` | `vite build && cp server/appsscript.json dist/ && npx esbuild server/*.ts --outdir=dist --out-extension:.js=.gs` (no ORM/library glue) |
 | `npm run push` | `npm run build && clasp push -f` — build then deploy to GAS |
 | `npm run lint` | `eslint .` |
 | `npm run preview` | Serve production build locally |
@@ -49,12 +49,12 @@ Output (`dist/`) contains `appsscript.json`, `index.html`, and one `.gs` per ser
 import { gsr } from './gas'
 
 // Direct use
-const result = await gsr<string[]>('testGQuery')
+const result = await gsr<string[]>('getSheetNames')
 
 // With TanStack Query (wraps in arrow function!)
 const query = useQuery({
-  queryKey: ['testGQuery'],
-  queryFn: () => gsr<string[]>('testGQuery'),
+  queryKey: ['getSheetNames'],
+  queryFn: () => gsr<string[]>('getSheetNames'),
 })
 ```
 
@@ -77,14 +77,6 @@ const query = useQuery({
    ```
 2. Call from front-end: `gsr<string[]>('getSheetNames')`
 3. No `.claspignore` changes needed — `!*.gs` catches all server output files.
-
-## GQuery / Sheets
-
-- **GQuery** is included as a GAS library in `server/appsscript.json` (library ID `1UqTjUrX6rnMMzbYJPJRPk3cmLCYc7n7FZwZq6Q7gG-j3rTqj15LC953B`).
-- Use as `new GQuery.GQuery(spreadsheetId)` — the double `GQuery` is because the first is the library identifier.
-- **Sheets advanced service** is enabled in the manifest (`serviceId: "sheets"`, version `v4`). Required by GQuery for write operations.
-- GQuery library versions available in GAS may differ from what's in the manifest. If a push resets the library to a lower version, re-add it via the Apps Script editor (Services → Libraries).
-- Spreadsheet IDs stored in `PropertiesService.getScriptProperties()` under `SPREADSHEET_ID` — set once via the Apps Script editor (Project Settings → Script Properties).
 
 ## TypeScript
 
@@ -131,4 +123,3 @@ Flat config (`eslint.config.js`). `globalIgnores(['dist', 'server'])` — server
 - `@types/google-apps-script` — GAS runtime types
 - `@tanstack/react-query` — server-side data fetching
 - `react-router` — client-side routing (MemoryRouter)
-- GQuery — Sheets ORM (GAS library, not npm)
