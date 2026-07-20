@@ -39,7 +39,7 @@ After `npm run push`, deploy the web app from the [Apps Script editor](https://s
 | Command | What it does |
 |---------|-------------|
 | `npm run dev` | Vite dev server with HMR |
-| `npm run build` | `vite build && cp server/appsscript.json dist/ && npx esbuild server/*.ts --outdir=dist --out-extension:.js=.gs` |
+| `npm run build` | `tsc -p tsconfig.server.json --noEmit && tsc -p tsconfig.app.json --noEmit && vite build && cp server/appsscript.json dist/ && npx esbuild server/*.ts --outdir=dist --out-extension:.js=.gs` |
 | `npm run push` | `npm run build && clasp push -f` — build then deploy to GAS |
 | `npm run lint` | `eslint .` |
 | `npm run preview` | Serve production build locally |
@@ -50,8 +50,7 @@ After `npm run push`, deploy the web app from the [Apps Script editor](https://s
 ```
 ├── src/                  # React front-end
 │   ├── App.tsx           # Entry point with QueryClient + Router
-│   ├── gas.ts            # gsr<T>() — promise wrapper for google.script.run
-│   ├── gas.d.ts          # TypeScript declarations for GAS API
+│   ├── gas.ts            # gsr<T>() — promise wrapper + `declare global` for google.script.run
 │   ├── components/ui/    # shadcn components
 │   └── lib/utils.ts      # cn() utility
 ├── server/               # GAS server-side code
@@ -109,10 +108,12 @@ The `@/` path alias resolves to `./src/`. Components go in `src/components/ui/`.
 
 ## Build pipeline
 
-1. `vite build` — compiles React app to `dist/`
-2. `vite-plugin-singlefile` — inlines all JS/CSS into `dist/index.html` (single file for `HtmlService`)
-3. `cp server/appsscript.json dist/` — copies manifest (build fails if `server/appsscript.json` missing)
-4. esbuild — `server/*.ts` compiled to `dist/*.gs` (plain JS for GAS V8 runtime)
+1. `tsc -p tsconfig.server.json --noEmit` — type-checks the `server/` GAS code
+2. `tsc -p tsconfig.app.json --noEmit` — type-checks the React front-end (build fails on TS errors)
+3. `vite build` — compiles React app to `dist/`
+4. `vite-plugin-singlefile` — inlines all JS/CSS into `dist/index.html` (single file for `HtmlService`)
+5. `cp server/appsscript.json dist/` — copies manifest (build fails if `server/appsscript.json` missing)
+6. esbuild — `server/*.ts` compiled to `dist/*.gs` (plain JS for GAS V8 runtime)
 
 Output (`dist/`) contains `appsscript.json`, `index.html`, and one `.gs` per server file.
 

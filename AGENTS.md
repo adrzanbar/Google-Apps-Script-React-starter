@@ -5,7 +5,7 @@
 | Command | What it does |
 |---------|-------------|
 | `npm run dev` | Vite dev server with HMR |
-| `npm run build` | `vite build && cp server/appsscript.json dist/ && npx esbuild server/*.ts --outdir=dist --out-extension:.js=.gs` |
+| `npm run build` | `tsc -p tsconfig.server.json --noEmit && tsc -p tsconfig.app.json --noEmit && vite build && cp server/appsscript.json dist/ && npx esbuild server/*.ts --outdir=dist --out-extension:.js=.gs` |
 | `npm run push` | `npm run build && clasp push -f` — build then deploy to GAS |
 | `npm run lint` | `eslint .` |
 | `npm run preview` | Serve production build locally |
@@ -13,10 +13,12 @@
 
 ## Build pipeline
 
-1. `vite build` — compiles React app to `dist/`
-2. `vite-plugin-singlefile` — inlines all JS/CSS into `dist/index.html` (single file for `HtmlService`)
-3. `cp server/appsscript.json dist/` — copies manifest (build fails if `server/appsscript.json` missing)
-4. esbuild — `server/*.ts` compiled to `dist/*.gs` (plain JS for GAS V8 runtime)
+1. `tsc -p tsconfig.server.json --noEmit` — type-checks the `server/` GAS code
+2. `tsc -p tsconfig.app.json --noEmit` — type-checks the React front-end (build fails on TS errors)
+3. `vite build` — compiles React app to `dist/`
+4. `vite-plugin-singlefile` — inlines all JS/CSS into `dist/index.html` (single file for `HtmlService`)
+5. `cp server/appsscript.json dist/` — copies manifest (build fails if `server/appsscript.json` missing)
+6. esbuild — `server/*.ts` compiled to `dist/*.gs` (plain JS for GAS V8 runtime)
 
 Output (`dist/`) contains `appsscript.json`, `index.html`, and one `.gs` per server file.
 
@@ -35,8 +37,7 @@ Output (`dist/`) contains `appsscript.json`, `index.html`, and one `.gs` per ser
 | `src/` | React front-end (Vite, tsconfig from `tsconfig.app.json`) |
 | `server/` | GAS server-side `.ts` files (compiled to `.gs`), uses `tsconfig.server.json` |
 | `dist/` | Build output pushed to GAS via clasp (gitignored) |
-| `src/gas.ts` | `gsr<T>()` — promise wrapper for `google.script.run` |
-| `src/gas.d.ts` | TypeScript declarations for `google.script.run` |
+| `src/gas.ts` | `gsr<T>()` wrapper + `declare global` for `google.script.run` |
 | `src/components/ui/` | shadcn UI components |
 | `src/lib/utils.ts` | `cn()` utility (clsx + tailwind-merge) |
 | `server/Code.ts` | `doGet()` and server functions |
