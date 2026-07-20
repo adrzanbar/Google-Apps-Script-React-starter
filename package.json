@@ -7,7 +7,7 @@
     "dev": "vite",
     "preview": "vite preview",
     "lint": "eslint .",
-    "build": "vite build && cp server/appsscript.json dist/ && npx esbuild server/*.ts --outdir=dist --out-extension:.js=.gs",
+    "build": "tsc -p tsconfig.server.json --noEmit && tsc -p tsconfig.app.json --noEmit && vite build && cp server/appsscript.json dist/ && npx esbuild server/*.ts --outdir=dist --out-extension:.js=.gs",
     "push": "npm run build && clasp push -f",
     "create": "clasp create --type standalone --rootDir dist"
   },
